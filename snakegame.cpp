@@ -1,0 +1,407 @@
+//must add new R to direct (to 0, so must shift list)
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 //change to 32
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+// The pins for I2C are defined by the Wire-library. 
+// On an arduino UNO:       A4(SDA), A5(SCL)
+// On an arduino MEGA 2560: 20(SDA), 21(SCL)
+// On an arduino LEONARDO:   2(SDA),  3(SCL), ...
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define NUMFLAKES     10 // Number of snowflakes in the animation example
+
+#define LOGO_HEIGHT   16
+#define LOGO_WIDTH    16
+static const unsigned char PROGMEM logo_bmp[] =
+{ 0b00000000, 0b11000000,
+  0b00000001, 0b11000000,
+  0b00000001, 0b11000000,
+  0b00000011, 0b11100000,
+  0b11110011, 0b11100000,
+  0b11111110, 0b11111000,
+  0b01111110, 0b11111111,
+  0b00110011, 0b10011111,
+  0b00011111, 0b11111100,
+  0b00001101, 0b01110000,
+  0b00011011, 0b10100000,
+  0b00111111, 0b11100000,
+  0b00111111, 0b11110000,
+  0b01111100, 0b11110000,
+  0b01110000, 0b01110000,
+  0b00000000, 0b00110000 };
+
+//VARIABLES
+unsigned long previousMillis = 0;
+int button = 3;
+bool b = 0;
+int direct [50] = {};
+int backx = 0;
+int backy = 0;
+int frontx = 3;
+int fronty = 0;
+int length = 4;
+int b1 = 3;
+int b2 = 4;
+int b3 = 5;
+int b4 = 6;
+//1 = right
+//2 = left
+//3 = up
+//4 = down
+
+void setup() {
+  pinMode (b1, INPUT);
+  pinMode (b2, INPUT);
+  pinMode (b3, INPUT);
+  pinMode (b4, INPUT);
+  Serial.begin(9600);
+  randomSeed (analogRead (0));
+  
+
+  // Wait for display
+  delay(500);
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+    Serial.println ("failed");
+  }
+
+  // Show initial display buffer contents on the screen --
+  // the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay (2000);
+   // Pause for 2 seconds
+ 
+  // Clear the buffer
+  display.clearDisplay();
+
+  // Draw a single pixel in white
+  //128 and 32
+  
+  display.drawPixel(0, 0, SSD1306_WHITE);
+  display.drawPixel (20, 0, SSD1306_WHITE);
+  display.drawPixel (21, 0, SSD1306_WHITE);
+  display.drawPixel (20, 1, SSD1306_WHITE);
+  display.drawPixel (21, 1, SSD1306_WHITE);
+  display.drawPixel (50, 0, SSD1306_WHITE);
+  display.drawPixel (100, 0, SSD1306_WHITE);
+  display.drawPixel (127, 31, SSD1306_WHITE);
+  display.display ();
+  
+
+for (int j = 0; j < 50; j ++)
+{
+  direct [j] = 1;
+}
+
+
+
+
+
+
+}
+
+void loop() {
+  general ();
+  
+  
+  
+}
+
+void updateSnake (int length)
+{
+//FRONT
+//1 is right
+//2 is left
+//3 is up
+//4 is down
+int front = length-1;
+int back = 0;
+    if (direct[front] == 1)
+    {
+      frontx ++;
+    }
+    else if (direct[front] == 2)
+    {
+      frontx = frontx - 1;
+    }
+    
+    else if (direct[front] == 3)
+    {
+      fronty = fronty - 1;
+    }
+    else
+    {
+      fronty = fronty + 1;
+    }
+
+//BACK
+    if (direct[back] == 1)
+    {
+      backx ++;
+    }
+    else if (direct[back] == 2)
+    {
+      backx = backx - 1;
+    }
+    
+    else if (direct[back] == 3)
+    {
+      backy = backy - 1;
+    }
+
+    else 
+    {
+      backy = backy + 1;
+    }
+    
+    
+  
+}
+void showSnake (int length)
+{
+  int back = 0;
+  /*Serial.println ("back");
+  Serial.println (backx);
+  Serial.println (backy); 
+  Serial.println ("front");
+  Serial.println (frontx);
+  Serial.println (fronty);*/
+  
+  if (direct [back] == 3 || direct [back] == 4)
+  {
+    display.drawPixel(backx, backy, SSD1306_BLACK); //had +1 on backx
+  }
+  else 
+  {
+    display.drawPixel(backx, backy, SSD1306_BLACK);
+  }
+  
+  display.drawPixel(frontx, fronty, SSD1306_WHITE);
+  display.display ();
+  
+  
+}
+
+void updateList (int length, int next)
+{
+  int n = next;
+  if (next == 1 && direct [length-1] == 2 || next == 2 && direct[length-1] ==1)
+  {
+    n = direct [length - 1];
+    
+  }
+  if (next == 3 && direct [length-1] == 4 || next == 4 && direct[length-1] == 3)
+  {
+    n = direct [length -1];
+    
+  }
+  for (int i = 0; i<length-1;i++)
+  {
+    direct [i] = direct [i+1];
+  }
+  direct[length-1] = n;
+  
+}
+
+void clicked ()
+{
+  
+  for (int i = 3; i < 7; i++)
+  {
+    if (digitalRead (i) == 1)
+    {
+      button = i;
+      //Serial.println (i);
+      while (digitalRead (i) == 1)
+      {
+
+      }
+    }
+  }
+  updateList (length, button-2);
+  updateSnake (length);
+  //Serial.println (direct [0]); //back
+  //Serial.println (direct [1]);
+  //Serial.println (direct [2]);//front
+  showSnake (length);
+  delay (100);
+  
+}
+void generate ()
+{
+ int x = random (126);
+ int y = random (30);
+ display.drawPixel(x, y, SSD1306_WHITE);
+ display.drawPixel (x+1, y, SSD1306_WHITE);
+ display.drawPixel (x, y+1, SSD1306_WHITE);
+ display.drawPixel (x+1, y+1, SSD1306_WHITE);
+ //getPixel (x, y)
+}
+
+void general ()
+{
+  
+  int bad = 0;
+  if ((frontx > 128) || (frontx < 0))
+  {
+    bad = 1;
+  }
+  if ((fronty > 32) || (fronty < 0)) //change to 32 for other screen
+  {
+    bad = 1;
+  }
+  
+  if (direct [length-1] == 1) //right
+  {
+    
+    
+    if (display.getPixel (frontx + 1, fronty) == 1)
+    {
+      if (display.getPixel (frontx + 2, fronty) == 1)
+      {
+        bad = 2; //apple
+        display.drawPixel (frontx + 2, fronty, SSD1306_BLACK);
+        
+        
+        
+        
+      }
+      else 
+      {
+        bad = 1; //snake
+      }
+      
+    }
+  }
+  
+  else if  (direct [length-1] == 2)
+  {
+    Serial.println ("2");
+    if (display.getPixel (frontx - 1, fronty) == 1)
+    {
+      if (display.getPixel (frontx - 2, fronty) == 1)
+      {
+        bad = 2; //apple
+        display.drawPixel (frontx - 2, fronty, SSD1306_BLACK);
+        
+      }
+      else 
+      {
+        bad = 1; //snake
+      }
+    }
+  }
+   else if (direct [length -1] == 3)
+  {
+    Serial.println ("2");
+    if (display.getPixel (frontx, fronty -1) == 1)
+    {
+      if (display.getPixel (frontx, fronty - 2) == 1)
+      {
+        bad = 2; //apple
+        display.drawPixel (frontx, fronty - 2, SSD1306_BLACK);
+        
+      }
+      else 
+      {
+        bad = 1; //snake
+      }
+    }
+  }
+  else if (direct [length -1] == 4)
+  {
+    Serial.println ("2");
+    if (display.getPixel (frontx, fronty +1) == 1)
+    {
+      if (display.getPixel (frontx, fronty+2) == 1)
+      {
+        bad = 2; //apple
+        display.drawPixel (frontx, fronty + 2, SSD1306_BLACK);
+      }
+      else 
+      {
+        bad = 1; //snake
+      }
+    }
+  }
+  
+  if (bad == 2)
+  {
+    Serial.println ("bad = 2");
+    
+    generate ();
+    Serial.println ("true");
+    int back = 0;
+    length = length + 5;
+    shift ();
+    shift ();
+    shift ();
+    shift ();
+    shift ();
+    if (direct[back] == 1)
+    {
+      backx = backx - 5;
+      Serial.println (backx);
+      
+    }
+    else if (direct[back] == 2)
+    {
+      backx = backx + 5;
+    }
+    
+    else if (direct[back] == 3)
+    {
+      backy = backy + 5;
+      delay (60);
+    }
+
+    else 
+    {
+      backy = backy - 5;
+      delay (60);
+    }
+
+
+  }
+  if (bad == 1)
+  {
+    
+    
+    display.clearDisplay();
+    length = 4;
+    for (int i = 0; i < 10; i++)
+    {
+      direct [i] = 1;
+    }
+    button = 3;
+    backx = 0;
+    backy = 0;
+    frontx = 3;
+    fronty = 0;
+    generate ();
+    generate ();
+    generate ();
+    generate ();
+  }
+  
+  clicked ();
+}
+
+void shift ()
+{
+  for (int i = length - 1; i >=0; i--)
+  {
+    direct [i + 1] = direct [i];
+  }
+}
